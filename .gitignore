@@ -1,0 +1,12 @@
+*.log.gz
+*.sc
+.DS_Store
+target/
+.project
+.idea*
+/project.plugins/project
+ca.log
+reports/
+clones/
+*.iml
+secure

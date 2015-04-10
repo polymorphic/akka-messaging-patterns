@@ -4,9 +4,9 @@
 target/
 .project
 .idea*
+.history
 /project.plugins/project
 ca.log
 reports/
 clones/
 *.iml
-secure

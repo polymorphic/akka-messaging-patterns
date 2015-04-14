@@ -4,6 +4,8 @@ import akka.pattern._
 import akka.actor.{Cancellable, ActorRef, Actor}
 import akka.util.Timeout
 import com.persist.JsonOps._
+import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
+import org.joda.time.{DateTimeZone, DateTime}
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
@@ -24,6 +26,9 @@ class ServerActor() extends Actor {
   private[this] implicit val executionContext = context.dispatcher
 
   import ServerActor._
+
+  private val dtz = DateTimeZone.forID("US/Pacific")
+  private val formatter = DateTimeFormat.forPattern("HH:mm:ss.SS")
 
   private[this] var listeners = Map.empty[Long, Cancellable]
 
@@ -62,18 +67,20 @@ class ServerActor() extends Actor {
     implicit val timeout: Timeout = Timeout(2 minutes)
     val sender1 = sender
     val info = Compact(JsonObject("cmd" -> "query", "name" -> name, "vals" -> vals, "id" -> id))
-    val r = sender1 ? info
-    val r1 = try {
-      Await.result(r, 1 minute)
+    val userSelectionF = sender1 ? info
+    val userSelection = try {
+      Await.result(userSelectionF, 1 minute)
     } catch {
       case ex: Exception => "???"
     }
-    jgetString(r1)
+    jgetString(userSelection)
   }
 
   private def askQuery(sender: ActorRef, msg: String, id: Long): JsonObject = {
-    val color = askClient(sender, id, "color", Seq("red", "green", "blue"))
-    val direction = askClient(sender, id, "direction", Seq("north", "south", "east", "west"))
+    val color =
+      askClient(sender, id, "color", Seq("red", "green", "blue"))
+    val direction =
+      askClient(sender, id, "direction", Seq("north", "south", "east", "west"))
     JsonObject("cmd" -> "done", "id" -> id, "msg" -> s"Processed: $msg $color:$direction")
   }
 
@@ -130,7 +137,8 @@ class ServerActor() extends Actor {
         case "StartListen" =>
           val sender1 = sender
           val t = context.system.scheduler.schedule(1 seconds, 3 seconds) {
-            val msg = JsonObject("cmd" -> "listen", "msg" -> System.currentTimeMillis().toString, "id"->id)
+            val now = DateTime.now(dtz)
+            val msg = JsonObject("cmd" -> "listen", "msg" -> formatter.print(now), "id"->id)
             sender1 ! Compact(msg)
           }
           listeners += id -> t

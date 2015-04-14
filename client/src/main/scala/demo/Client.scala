@@ -45,7 +45,7 @@ object Client {
 
   private def setQueryCompleters(reader: ConsoleReader, vals: Seq[String]) {
     clearCompleters(reader)
-    var completers = new util.LinkedList[Completer]()
+    val completers = new util.LinkedList[Completer]()
     for (s <- vals) {
       completers.add(new StringsCompleter(s))
     }

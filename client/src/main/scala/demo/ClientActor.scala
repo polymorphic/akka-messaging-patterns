@@ -138,10 +138,10 @@ class ClientActor() extends Actor {
 
             case "query" =>
               request.q match {
-                case Some(q1) =>
+                case Some(queryFunc) =>
                   val name = jgetString(j, "name")
                   val vals = jgetArray(j, "vals").map(jgetString(_))
-                  val answer = q1(name, vals)
+                  val answer = queryFunc(name, vals)
                   sender ! jgetString(answer)
                 case None =>
               }

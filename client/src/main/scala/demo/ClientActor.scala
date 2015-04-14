@@ -1,6 +1,6 @@
 package demo
 
-import akka.actor.Actor
+import akka.actor.{Cancellable, Actor}
 import com.persist.JsonOps._
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -43,6 +43,7 @@ class ClientActor() extends Actor {
 
   private[this] var idCounter: Long = 0
   private[this] var active = Map.empty[Long, RequestInfo]
+  private[this] var cancellations = Map.empty[Long, Cancellable]
 
   def newId() = {
     idCounter += 1
@@ -73,7 +74,7 @@ class ClientActor() extends Actor {
       val id = newId()
       active += id -> RequestInfo(result)
       send(JsonObject("cmd" -> "RequestResponseAck", "msg" -> msg, "id" -> id))
-      context.system.scheduler.scheduleOnce(2 seconds) {
+      cancellations += id -> context.system.scheduler.scheduleOnce(2 seconds) {
         self ! AckTimeOut(id)
       }
 
@@ -85,6 +86,7 @@ class ClientActor() extends Actor {
           result.tryFailure(new Exception("server not available"))
         case None =>
       }
+      cancellations -= id
 
     case RequestResponseProgress(msg, result) =>
       val id = newId()
@@ -129,6 +131,10 @@ class ClientActor() extends Actor {
               result.tryFailure(new Exception(msg))
 
             case "ack" =>
+              cancellations.get(id).foreach { case c =>
+                c.cancel()
+                cancellations -= id
+              }
 
             case "query" =>
               request.q match {

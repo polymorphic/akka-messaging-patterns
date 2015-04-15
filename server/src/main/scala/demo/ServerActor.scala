@@ -11,21 +11,9 @@ import scala.language.postfixOps
 
 import scala.concurrent.{Await, Promise}
 
-object ServerActor {
-
-  case class Request(result: Promise[String])
-
-  case class OneWay(msg: String)
-
-  case class RequestResponse(msg: String, result: Promise[String])
-
-}
-
 class ServerActor() extends Actor {
 
   private[this] implicit val executionContext = context.dispatcher
-
-  import ServerActor._
 
   private val dtz = DateTimeZone.forID("US/Pacific")
   private val formatter = DateTimeFormat.forPattern("HH:mm:ss.SS")
@@ -33,6 +21,7 @@ class ServerActor() extends Actor {
   private[this] var listeners = Map.empty[Long, Cancellable]
 
   private def delay(seconds: Int): Unit = {
+    println("Working...")
     Thread.sleep(1000 * seconds)
   }
 
@@ -142,7 +131,6 @@ class ServerActor() extends Actor {
             sender1 ! Compact(msg)
           }
           listeners += id -> t
-        // set lid -> timer
 
         case "StopListen" =>
           val lid = jgetString(j, "lid")
